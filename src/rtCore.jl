@@ -5,10 +5,12 @@ mutable struct Ray{T}
     idxFace::Int64
 end
 
-Ray(origin, dir) = Ray(origin, normalize(dir), Inf, 0)
+function Ray(origin::Vector{T}, dir::Vector{T}) where T
+    return Ray(origin, normalize(dir), convert(T, Inf), 0)
+end
 
 @inline function resetRay!(ray::Ray)
-    ray.t = Inf
+    ray.t = oftype(ray.t, Inf)
     ray.idxFace = 0
     return
 end
@@ -20,7 +22,7 @@ end
     return
 end
 
-@inline function intersect!(ray::Ray, tri, idx::Int64, E12, E13, P, T)
+@inline function intersect!(ray::Ray, tri, idx::Int64, E12::Vector{X}, E13::Vector{X}, P::Vector{X}, T::Vector{X}) where X
     v1, v2, v3 = tri
     @inbounds for i in 1:3
         E12[i] = v2[i] - v1[i]
@@ -28,7 +30,7 @@ end
     end
     cross!(P, ray.dir, E13)
     detM = dot3(P, E12)
-    if abs(detM) ≤ EPS_PARALLEL
+    if abs(detM) ≤ X(EPS_PARALLEL)
         return
     end
 
@@ -36,42 +38,41 @@ end
         T[i] = ray.origin[i] - v1[i]
     end
     u = dot3(P, T)/detM
-    if u < ZERO_WITH_TOL || u > ONE_WITH_TOL
-        return
-    end
+    if u < X(ZERO_WITH_TOL); return; end
+    if u > X(ONE_WITH_TOL); return; end
 
     cross!(P, T, E12)       # Q <- P
     v = dot3(P, ray.dir)/detM
-    if v < ZERO_WITH_TOL || u + v > ONE_WITH_TOL
+    if v < X(ZERO_WITH_TOL) || u + v > X(ONE_WITH_TOL)
         return
     end
 
     t = dot3(E13, P)/detM
-    if t > EPS_MIN_DIST && t < ray.t
+    if t > X(EPS_MIN_DIST) && t < ray.t
         ray.t = t
         ray.idxFace = idx
     end
 end
 
 struct BBox{T}
-    boxMin::Vector{T}
-    boxMax::Vector{T}
+    min::Vector{T}
+    max::Vector{T}
 end
 
 BBox(model::GeometryBasics.Mesh) = BBox(model.position)
 
 function BBox(vertices)
-    boxMin, boxMax = vertices[1], vertices[1]
+    bmin, bmax = vertices[1], vertices[1]
     for v in vertices
-        boxMin = min.(boxMin, v)
-        boxMax = max.(boxMax, v)
+        bmin = min.(bmin, v)
+        bmax = max.(bmax, v)
     end
-    return BBox(Vector(boxMin), Vector(boxMax))
+    return BBox(Vector(bmin), Vector(bmax))
 end
 
 @inline function getT1T2(ray::Ray, bbox::BBox, idx)
-    t1 = (bbox.boxMin[idx] - ray.origin[idx])/ray.dir[idx]
-    t2 = (bbox.boxMax[idx] - ray.origin[idx])/ray.dir[idx]
+    t1 = (bbox.min[idx] - ray.origin[idx])/ray.dir[idx]
+    t2 = (bbox.max[idx] - ray.origin[idx])/ray.dir[idx]
     return t1, t2
 end
 
