@@ -1,29 +1,34 @@
 mutable struct Ray{T}
-    origin::Vector{T}
-    dir::Vector{T}
-    t::T
-    idxFace::Int64
+    origin::Vector{T}   # Ray origin position
+    dir::Vector{T}      # Ray direction
+    tmp1::Vector{T}     # Allocations
+    tmp2::Vector{T}     # Allocations
+    tmp3::Vector{T}     # Allocations
+    tmp4::Vector{T}     # Allocations
+    t::T                # Distance to hit
+    idxFace::Int64      # ID face hit
 end
 
 function Ray(origin::Vector{T}, dir::Vector{T}) where T
-    return Ray(origin, normalize(dir), convert(T, Inf), 0)
+    return Ray(origin, normalize(dir), similar(dir), similar(dir), similar(dir), similar(dir), T(Inf), 0)
 end
 
-@inline function resetRay!(ray::Ray)
-    ray.t = oftype(ray.t, Inf)
+@inline function resetRay!(ray::Ray{T}) where T
+    ray.t = T(Inf)
     ray.idxFace = 0
     return
 end
 
-@inline function rayHitPosition!(posHit, ray::Ray)
+@inline function rayHitPosition!(posHit::Vector{T}, ray::Ray{T}) where T
     posHit[1] = ray.origin[1] + ray.t*ray.dir[1]
     posHit[2] = ray.origin[2] + ray.t*ray.dir[2]
     posHit[3] = ray.origin[3] + ray.t*ray.dir[3]
     return
 end
 
-@inline function intersect!(ray::Ray, tri, idx::Int64, E12::Vector{X}, E13::Vector{X}, P::Vector{X}, T::Vector{X}) where X
+@inline function intersect!(ray::Ray{X}, tri, idx::Int64) where X
     v1, v2, v3 = tri
+    E12 = ray.tmp1; E13 = ray.tmp2; P = ray.tmp3
     @inbounds for i in 1:3
         E12[i] = v2[i] - v1[i]
         E13[i] = v3[i] - v1[i]
@@ -34,6 +39,7 @@ end
         return
     end
 
+    T = ray.tmp4
     @inbounds for i in 1:3
         T[i] = ray.origin[i] - v1[i]
     end
@@ -62,12 +68,15 @@ end
 BBox(model::GeometryBasics.Mesh) = BBox(model.position)
 
 function BBox(vertices)
-    bmin, bmax = vertices[1], vertices[1]
+    bmin = Vector(vertices[1])
+    bmax = Vector(vertices[1])
     for v in vertices
-        bmin = min.(bmin, v)
-        bmax = max.(bmax, v)
+        @inbounds for i in 1:3
+            bmin[i] = min(bmin[i], v[i])
+            bmax[i] = max(bmax[i], v[i])
+        end
     end
-    return BBox(Vector(bmin), Vector(bmax))
+    return BBox(bmin, bmax)
 end
 
 @inline function getT1T2(ray::Ray, bbox::BBox, idx)

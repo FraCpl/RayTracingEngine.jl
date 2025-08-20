@@ -36,20 +36,15 @@ function rayTracingSurface(model::GeometryBasics.Mesh, dirObs::Vector{T}; Nrays:
     return first(rayTracingSrp(model, dirObs; Nrays=Nrays, Nrec=1, mode=:surf))
 end
 
-function rayTracingAltimeter(model::GeometryBasics.Mesh, ray::Ray, bbox::BBox=BBox(model),
-        tmp1=zero(ray.dir), tmp2=zero(ray.dir), tmp3=zero(ray.dir), tmp4=zero(ray.dir))
-    # Initialize variables
-    Nf = length(model)
-    resetRay!(ray)
-
-    # Check if the ray intersects the object's bounding box
-    if intersect!(ray, bbox)
-        # Intersect ray with model and identify closest hit
+function rayTracingAltimeter(model::GeometryBasics.Mesh, ray::Ray, bbox::BBox=BBox(model))
+    resetRay!(ray)                          # Initialize ray
+    if intersect!(ray, bbox)                # Check if the ray intersects the object's bounding box
+        Nf = length(model)
         @inbounds for k in 1:Nf
-            intersect!(ray, model[k], k, tmp1, tmp2, tmp3, tmp4)
+            intersect!(ray, model[k], k)    # Intersect ray with model and identify closest hit
         end
     end
-    return  # ray.t is the distance to model
+    return                                  # ray.t is the distance to model
 end
 
 @views function rayTracingSrp(model::GeometryBasics.Mesh, dirSun::Vector{T}, Psrp::T=T(1.0);
@@ -76,7 +71,7 @@ end
     surf = 0.0; posCoP = zeros(T, 3)
     forceSrp = zeros(T, 3); torqueSrp = zeros(T, 3)
     ray = Ray(zeros(T, 3), dirRay)
-    tmp1 = zeros(T, 3); tmp2 = zeros(T, 3); tmp3 = zeros(T, 3); tmp4 = zeros(T, 3)
+    tmp1 = ray.tmp1; tmp2 = ray.tmp2; tmp3 = ray.tmp3; tmp4 = ray.tmp4
 
     for x in coords, y in coords
         # Update ray origin
@@ -94,7 +89,7 @@ end
             @inbounds for n in 1:Nrec
                 # Intersect ray with entire model (closest intersection)
                 @inbounds for k in 1:Nf
-                    intersect!(ray, model[k], k, tmp1, tmp2, tmp3, tmp4)
+                    intersect!(ray, model[k], k)
                     if anyIntersection && ray.t < Inf
                         break
                     end
@@ -105,7 +100,8 @@ end
                     break
                 elseif mode == :srp
                     # Compute SRP
-                    N, cosθ, newDir = rayReflection(model[ray.idxFace], ray)
+                    N = tmp1; newDir = tmp2
+                    cosθ = rayReflection!(N, newDir, model[ray.idxFace], ray)
                     frc, trq, psrp, posHit = srpFormula(ray, psrp, Ap, N, α, rd, rs, cosθ)
                     forceSrp .+= frc
                     torqueSrp .+= trq
@@ -114,14 +110,16 @@ end
                     if n < Nrec
                         ray.t = Inf
                         ray.dir .= newDir
-                        ray.origin .= posHit + RAY_SHIFT*newDir
+                        ray.origin .= posHit .+ RAY_SHIFT.*newDir
                     end
                 elseif mode == :hyper
+                    posHit = tmp1; N = tmp2; frc = tmp4
                     # Newton theory for hypersonic aerodynamics
-                    N, cosθ, ~ = rayReflection(model[ray.idxFace], ray)     # N is the outward normal
-                    frc = -N*cosθ*Ap                                        # sinα = sin(π/2 - θ) = cosθ, Ap = dS*cosθ = dS*sinα,
-                    posHit = ray.origin + ray.t*ray.dir
-                    torqueSrp .+= posHit × frc
+                    cosθ = rayReflection!(N, tmp3, model[ray.idxFace], ray) # N is the outward normal
+                    frc .= N.*(-cosθ*Ap)                                    # sinα = sin(π/2 - θ) = cosθ, Ap = dS*cosθ = dS*sinα,
+                    rayHitPosition!(posHit, ray)
+                    cross!(tmp3, posHit, frc)
+                    torqueSrp .+= tmp3
                     forceSrp .+= frc
                 else
                     # Compute surface and center of pressure
@@ -142,10 +140,18 @@ end
     end
 end
 
-function rayReflection(face, ray)
-    E1 = face[2] - face[1]
-    E2 = face[3] - face[2]
-    N = normalize(E1 × E2)
+function rayReflection(tri, ray)
+    N = similar(ray.dir)
+    newDir = similar(ray.dir)
+    cosθ = rayReflection!(N, newDir, tri, ray)
+    return N, cosθ, newDir
+end
+
+function rayReflection!(N, newDir, tri, ray)
+    E1 = tri[2] - tri[1]
+    E2 = tri[3] - tri[2]
+    cross!(N, Vector(E1), Vector(E2))
+    N ./= norm(N)
     cosθ = -dot3(N, ray.dir)
 
     # Fix normal direction of current face on the basis of ray
@@ -155,8 +161,8 @@ function rayReflection(face, ray)
         N .*= -1.0
         cosθ = -cosθ
     end
-
-    return N, cosθ, ray.dir + 2cosθ*N
+    newDir .= ray.dir .+ 2cosθ.*N
+    return cosθ
 end
 
 function srpFormula(ray, Psrp, Ap, N, α, rd, rs, cosθ)
