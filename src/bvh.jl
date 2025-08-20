@@ -1,0 +1,104 @@
+struct BVHNode{T}
+    bbox::BBox{T}
+    left::Int       # index of left child, -1 if leaf
+    right::Int      # index of right child, -1 if leaf
+    start::Int      # start index into triangle list
+    count::Int      # number of triangles (only valid if leaf)
+end
+
+struct BVHModel{T}
+    model::GeometryBasics.Mesh
+    nodes::Vector{BVHNode{T}}
+    tri_indices::Vector{Int}
+end
+
+function buildBvh(model::GeometryBasics.Mesh; maxLeafSize::Int=4)
+    n = length(model)
+
+    # Init
+    tri_indices = collect(1:n)
+    bmin = Vector(model[1][1])      # Just to reduce allocations
+    bmax = similar(bmin)            # Just to reduce allocations
+    onethird = convert(eltype(bmin), 1/3)
+
+    nodes = BVHNode{eltype(model[1][1])}[]
+    _build!(nodes, model, tri_indices, 1, n, maxLeafSize, bmin, bmax, onethird)
+    return BVHModel(model, nodes, tri_indices)
+end
+
+function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax, onethird)
+    count = stop - start + 1
+
+    # compute bbox for [start:stop]
+    @inbounds for i in 1:3
+        bmin[i] = model[tri_indices[start]][1][i]
+        bmax[i] = bmin[i]
+    end
+    for i in start:stop
+        tri = model[tri_indices[i]]
+        for j in 1:3
+            bmin[j] = min(bmin[j], tri[1][j], tri[2][j], tri[3][j])
+            bmax[j] = max(bmax[j], tri[1][j], tri[2][j], tri[3][j])
+        end
+    end
+    node_bbox = BBox(bmin, bmax)
+    node_idx = length(nodes) + 1
+
+    if count <= maxLeafSize
+        push!(nodes, BVHNode(node_bbox, -1, -1, start, count))
+        return node_idx
+    end
+
+    # choose split axis (longest axis)
+    diagx = node_bbox.maxx - node_bbox.minx
+    diagy = node_bbox.maxy - node_bbox.miny
+    diagz = node_bbox.maxz - node_bbox.minz
+    axis = findmax((diagx, diagy, diagz))[2]
+
+    # partition tri_indices[start:stop] by centroid along axis
+    mid = (start + stop) >>> 1
+    v = view(tri_indices, start:stop)
+    sort!(v; by = i -> begin
+        v1, v2, v3 = model[i]
+        (v1[axis] + v2[axis] + v3[axis]) * onethird
+    end)
+
+    # push placeholder parent (pre-order)
+    push!(nodes, BVHNode(node_bbox, -1, -1, -1, 0))
+
+    # build children
+    left  = _build!(nodes, model, tri_indices, start, mid, maxLeafSize, bmin, bmax, onethird)
+    right = _build!(nodes, model, tri_indices, mid+1, stop, maxLeafSize, bmin, bmax, onethird)
+
+    # overwrite parent with correct child indices
+    nodes[node_idx] = BVHNode(node_bbox, left, right, -1, 0)
+    return node_idx
+end
+
+
+function traverse!(ray::Ray{T}, bvh::BVHModel{T}, anyHit=false) where T
+    resetRay!(ray)
+    stack = [1]   # start at root
+    while !isempty(stack)
+        node_idx = pop!(stack)
+        node = bvh.nodes[node_idx]
+
+        if !intersect!(ray, node.bbox)
+            continue
+        end
+
+        if node.left < 0   # leaf
+            @inbounds for i in node.start:(node.start + node.count - 1)
+                idx = bvh.tri_indices[i]
+                tri = bvh.model[idx]
+                intersect!(ray, tri, idx)
+                if anyHit && ray.t < T(Inf)
+                    break
+                end
+            end
+        else               # internal
+            push!(stack, node.left)
+            push!(stack, node.right)
+        end
+    end
+end

@@ -15,7 +15,7 @@ end
 
 @inline function resetRay!(ray::Ray{T}) where T
     ray.t = T(Inf)
-    ray.idxFace = 0
+    ray.idxFace = zero(ray.idxFace)
     return
 end
 
@@ -26,7 +26,8 @@ end
     return
 end
 
-@inline function intersect!(ray::Ray{X}, tri, idx::Int64) where X
+@inline function intersect!(ray::Ray{X}, tri::GeometryBasics.Triangle{3, X}, idx::Int64) where X
+    # @show typeof(tri)
     v1, v2, v3 = tri
     E12 = ray.tmp1; E13 = ray.tmp2; P = ray.tmp3
     @inbounds for i in 1:3
@@ -61,11 +62,20 @@ end
 end
 
 struct BBox{T}
-    min::Vector{T}
-    max::Vector{T}
+    # We use scalars instead of vectors to allow for a fast BVH computation
+    minx::T
+    miny::T
+    minz::T
+    maxx::T
+    maxy::T
+    maxz::T
 end
 
-BBox(model::GeometryBasics.Mesh) = BBox(model.position)
+@inline function BBox(bmin::Vector{T}, bmax::Vector{T}) where T
+    return BBox(bmin[1], bmin[2], bmin[3], bmax[1], bmax[2], bmax[3])
+end
+
+@inline BBox(model::GeometryBasics.Mesh) = BBox(model.position)
 
 function BBox(vertices)
     bmin = Vector(vertices[1])
@@ -79,23 +89,42 @@ function BBox(vertices)
     return BBox(bmin, bmax)
 end
 
-@inline function getT1T2(ray::Ray, bbox::BBox, idx)
-    t1 = (bbox.min[idx] - ray.origin[idx])/ray.dir[idx]
-    t2 = (bbox.max[idx] - ray.origin[idx])/ray.dir[idx]
-    return t1, t2
-end
+# @inline function intersect!(ray::Ray{T}, bbox::BBox{T}) where T
+#     t1 = (bbox.minx - ray.origin[1])/ray.dir[1]
+#     t2 = (bbox.maxx - ray.origin[1])/ray.dir[1]
+#     tmin = min(t1, t2)
+#     tmax = max(t1, t2)
 
-@inline function intersect!(ray::Ray, bbox::BBox)
-    t1, t2 = getT1T2(ray, bbox, 1)
-    tmin = min(t1, t2)
-    tmax = max(t1, t2)
+#     t1 = (bbox.miny - ray.origin[2])/ray.dir[2]
+#     t2 = (bbox.maxy - ray.origin[2])/ray.dir[2]
+#     tmin = max(tmin, min(t1, t2))
+#     tmax = min(tmax, max(t1, t2))
 
-    t1, t2 = getT1T2(ray, bbox, 2)
-    tmin = max(tmin, min(t1, t2))
-    tmax = min(tmax, max(t1, t2))
+#     t1 = (bbox.minz - ray.origin[3])/ray.dir[3]
+#     t2 = (bbox.maxz - ray.origin[3])/ray.dir[3]
+#     tmin = max(zero(T), max(tmin, min(t1, t2)))
+#     tmax = min(tmax, max(t1, t2))
+#     return tmax ≥ tmin
+# end
 
-    t1, t2 = getT1T2(ray, bbox, 3)
-    tmin = max(0.0, max(tmin, min(t1, t2)))
-    tmax = min(tmax, max(t1, t2))
-    return tmax ≥ tmin
+@inline function intersect!(ray::Ray{T}, bbox::BBox{T}) where T
+    # X-axis
+    t1 = (bbox.minx - ray.origin[1])/ray.dir[1]
+    t2 = (bbox.maxx - ray.origin[1])/ray.dir[1]
+    tmin = ifelse(t1 < t2, t1, t2)
+    tmax = ifelse(t1 < t2, t2, t1)
+
+    # Y-axis
+    t1 = (bbox.miny - ray.origin[2])/ray.dir[2]
+    t2 = (bbox.maxy - ray.origin[2])/ray.dir[2]
+    tmin = ifelse(t1 < t2, max(tmin, t1), max(tmin, t2))
+    tmax = ifelse(t1 < t2, min(tmax, t2), min(tmax, t1))
+
+    # Z-axis
+    t1 = (bbox.minz - ray.origin[3])/ray.dir[3]
+    t2 = (bbox.maxz - ray.origin[3])/ray.dir[3]
+    tmin = ifelse(t1 < t2, max(tmin, t1), max(tmin, t2))
+    tmax = ifelse(t1 < t2, min(tmax, t2), min(tmax, t1))
+
+    return tmax ≥ max(tmin, zero(T))
 end

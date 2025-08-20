@@ -15,6 +15,9 @@ include("math.jl")
 export Ray, BBox
 include("rtCore.jl")
 
+export buildBvh, traverse!
+include("bvh.jl")
+
 export rayTracingDrag, rayTracingSrp, rayTracingSurface, rayTracingHypersonicAero, rayTracingAltimeter
 include("rtFunctions.jl")
 

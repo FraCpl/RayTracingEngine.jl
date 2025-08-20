@@ -52,7 +52,7 @@ end
         Nrec::Int=3,
         mode::Symbol=:srp) where T
 
-    anyIntersection = !(mode == :srp || mode == :hyper)
+    anyHit = !(mode == :srp || mode == :hyper)
     α = 0.7; rd = 0.1; rs = 0.2
 
     # Model box
@@ -90,7 +90,7 @@ end
                 # Intersect ray with entire model (closest intersection)
                 @inbounds for k in 1:Nf
                     intersect!(ray, model[k], k)
-                    if anyIntersection && ray.t < Inf
+                    if anyHit && ray.t < Inf
                         break
                     end
                 end
