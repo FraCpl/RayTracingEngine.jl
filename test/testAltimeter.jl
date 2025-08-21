@@ -2,6 +2,7 @@ using RayTracingEngine
 using FileIO
 using LinearAlgebra
 using BenchmarkTools
+using JLD2
 
 function mainAlt()
     model = load("C:/Users/francesco capolupo/OneDrive - ESA/Desktop/Work/Tools/rayTracer/examples/SL2_final_adj_5mpp_surf_crop.obj")
@@ -35,6 +36,8 @@ function mainBvh()
     #     println("Hit triangle $(ray.idxFace) at t=$(ray.t)")
     # end
     @show ray.t, ray.idxFace
+
+    # FileIO.save("SL2_final_adj_5mpp_surf_crop_bvh.jld2", "bvh", bvh)
 
 end
 

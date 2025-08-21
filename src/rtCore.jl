@@ -13,6 +13,8 @@ function Ray(origin::Vector{T}, dir::Vector{T}) where T
     return Ray(origin, normalize(dir), similar(dir), similar(dir), similar(dir), similar(dir), T(Inf), 0)
 end
 
+Ray() = Ray(zeros(Float32, 3), zeros(Float32, 3))
+
 @inline function resetRay!(ray::Ray{T}) where T
     ray.t = T(Inf)
     ray.idxFace = zero(ray.idxFace)

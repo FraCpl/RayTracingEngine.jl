@@ -19,14 +19,13 @@ function buildBvh(model::GeometryBasics.Mesh; maxLeafSize::Int=4)
     tri_indices = collect(1:n)
     bmin = Vector(model[1][1])      # Just to reduce allocations
     bmax = similar(bmin)            # Just to reduce allocations
-    onethird = convert(eltype(bmin), 1/3)
 
     nodes = BVHNode{eltype(model[1][1])}[]
-    _build!(nodes, model, tri_indices, 1, n, maxLeafSize, bmin, bmax, onethird)
+    _build!(nodes, model, tri_indices, 1, n, maxLeafSize, bmin, bmax)
     return BVHModel(model, nodes, tri_indices)
 end
 
-function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax, onethird)
+function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax)
     count = stop - start + 1
 
     # compute bbox for [start:stop]
@@ -60,15 +59,15 @@ function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax
     v = view(tri_indices, start:stop)
     sort!(v; by = i -> begin
         v1, v2, v3 = model[i]
-        (v1[axis] + v2[axis] + v3[axis]) * onethird
+        (v1[axis] + v2[axis] + v3[axis]) # * onethird (multiplication by 1/3 not necessary for sorting)
     end)
 
     # push placeholder parent (pre-order)
     push!(nodes, BVHNode(node_bbox, -1, -1, -1, 0))
 
     # build children
-    left  = _build!(nodes, model, tri_indices, start, mid, maxLeafSize, bmin, bmax, onethird)
-    right = _build!(nodes, model, tri_indices, mid+1, stop, maxLeafSize, bmin, bmax, onethird)
+    left  = _build!(nodes, model, tri_indices, start, mid, maxLeafSize, bmin, bmax)
+    right = _build!(nodes, model, tri_indices, mid+1, stop, maxLeafSize, bmin, bmax)
 
     # overwrite parent with correct child indices
     nodes[node_idx] = BVHNode(node_bbox, left, right, -1, 0)
