@@ -119,13 +119,13 @@ struct SphereModel{T}
 end
 
 @inline function intersect!(ray::Ray{T}, sphere::SphereModel{T}) where T
-    rayOrigin = ray.tmp1
+    c = zero(T); d = zero(T)
     @inbounds for i in 1:3
         # position of ray origin wrt sphere origin
-        rayOrigin[i] = ray.origin[i] - sphere.origin[i]
+        x = ray.origin[i] - sphere.origin[i]
+        c += ray.dir[i]*x
+        d += x*x
     end
-    c = dot3(ray.dir, rayOrigin)
-    d = dot3(rayOrigin, rayOrigin)
     δ = c*c - d + R*R
     if δ < 0.0
         return
