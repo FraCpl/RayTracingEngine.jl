@@ -12,10 +12,10 @@ const DEFAULT_NRAYS = 1_000_000
 
 include("math.jl")
 
-export Ray, BBox
+export Ray, BBox, SphereModel, intersect!
 include("rtCore.jl")
 
-export BVHModel, buildBvh, traverse!
+export BVHModel, buildBvh
 include("bvh.jl")
 
 export rayTracingDrag, rayTracingSrp, rayTracingSurface, rayTracingHypersonicAero, rayTracingAltimeter

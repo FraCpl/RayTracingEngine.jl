@@ -91,24 +91,6 @@ function BBox(vertices)
     return BBox(bmin, bmax)
 end
 
-# @inline function intersect!(ray::Ray{T}, bbox::BBox{T}) where T
-#     t1 = (bbox.minx - ray.origin[1])/ray.dir[1]
-#     t2 = (bbox.maxx - ray.origin[1])/ray.dir[1]
-#     tmin = min(t1, t2)
-#     tmax = max(t1, t2)
-
-#     t1 = (bbox.miny - ray.origin[2])/ray.dir[2]
-#     t2 = (bbox.maxy - ray.origin[2])/ray.dir[2]
-#     tmin = max(tmin, min(t1, t2))
-#     tmax = min(tmax, max(t1, t2))
-
-#     t1 = (bbox.minz - ray.origin[3])/ray.dir[3]
-#     t2 = (bbox.maxz - ray.origin[3])/ray.dir[3]
-#     tmin = max(zero(T), max(tmin, min(t1, t2)))
-#     tmax = min(tmax, max(t1, t2))
-#     return tmax ≥ tmin
-# end
-
 @inline function intersect!(ray::Ray{T}, bbox::BBox{T}) where T
     # X-axis
     t1 = (bbox.minx - ray.origin[1])/ray.dir[1]
@@ -129,4 +111,28 @@ end
     tmax = ifelse(t1 < t2, min(tmax, t2), min(tmax, t1))
 
     return tmax ≥ max(tmin, zero(T))
+end
+
+struct SphereModel{T}
+    origin::Vector{T}
+    R::T
+end
+
+@inline function intersect!(ray::Ray{T}, sphere::SphereModel{T}) where T
+    rayOrigin = ray.tmp1
+    @inbounds for i in 1:3
+        # position of ray origin wrt sphere origin
+        rayOrigin[i] = ray.origin[i] - sphere.origin[i]
+    end
+    c = dot3(ray.dir, rayOrigin)
+    d = dot3(rayOrigin, rayOrigin)
+    δ = c*c - d + R*R
+    if δ < 0.0
+        return
+    end
+    ρ = - c - √δ
+    if 0.0 < ρ < ray.t
+        ray.t = ρ
+    end
+    return
 end

@@ -31,7 +31,7 @@ function mainBvh()
     pos3 = Float32.([cosd(argonautLon)*cosd(argonautLat); sind(argonautLon)*cosd(argonautLat); sind(argonautLat)].*(1.7374e6+300.0))
     ray = Ray(pos3, Float32[0.0; 0.0; 1.0])
 
-    @time traverse!(ray, bvh)
+    @time RayTracingEngine.intersect!(ray, bvh)
     # if ray.idxFace > 0
     #     println("Hit triangle $(ray.idxFace) at t=$(ray.t)")
     # end

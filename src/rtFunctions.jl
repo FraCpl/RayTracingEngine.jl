@@ -47,6 +47,11 @@ function rayTracingAltimeter(model::GeometryBasics.Mesh, ray::Ray, bbox::BBox=BB
     return                                  # ray.t is the distance to model
 end
 
+function rayTracingAltimeter(model::BVHModel{T}, ray::Ray{T}, anyHit::Bool=false) where T
+    traverse!(ray, model, anyHit)
+    return
+end
+
 @views function rayTracingSrp(model::GeometryBasics.Mesh, dirSun::Vector{T}, Psrp::T=T(1.0);
         Nrays::Int=DEFAULT_NRAYS,
         Nrec::Int=3,

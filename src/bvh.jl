@@ -75,7 +75,7 @@ function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax
 end
 
 
-function traverse!(ray::Ray{T}, bvh::BVHModel{T}, anyHit=false) where T
+function intersect!(ray::Ray{T}, bvh::BVHModel{T}, anyHit=false) where T
     resetRay!(ray)
     stack = [1]   # start at root
     while !isempty(stack)
