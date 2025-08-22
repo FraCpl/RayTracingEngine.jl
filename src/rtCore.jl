@@ -126,7 +126,7 @@ end
         c += ray.dir[i]*x
         d += x*x
     end
-    δ = c*c - d + R*R
+    δ = c*c - d + sphere.R*sphere.R
     if δ < 0.0
         return
     end
