@@ -17,7 +17,7 @@ Ray() = Ray(zeros(Float32, 3), zeros(Float32, 3))
 
 @inline function resetRay!(ray::Ray{T}) where T
     ray.t = T(Inf)
-    ray.idxFace = zero(ray.idxFace)
+    # ray.idxFace = zero(ray.idxFace)
     return
 end
 
