@@ -38,7 +38,7 @@ end
 
 function rayTracingAltimeter(model::GeometryBasics.Mesh, ray::Ray, bbox::BBox=BBox(model))
     resetRay!(ray)                          # Initialize ray
-    if intersect!(ray, bbox)                # Check if the ray intersects the object's bounding box
+    if intersect(ray, bbox)                # Check if the ray intersects the object's bounding box
         Nf = length(model)
         @inbounds for k in 1:Nf
             intersect!(ray, model[k], k)    # Intersect ray with model and identify closest hit
@@ -88,7 +88,7 @@ end
         end
 
         # Check if the ray intersects the object's bounding box
-        if intersect!(ray, bbox)
+        if intersect(ray, bbox)
             psrp = Psrp
             # Initialize ray recursion
             @inbounds for n in 1:Nrec

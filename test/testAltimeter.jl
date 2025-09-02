@@ -6,7 +6,7 @@ using JLD2
 
 function mainAlt()
     model = load("C:/Users/francesco capolupo/OneDrive - ESA/Desktop/Work/Tools/rayTracer/examples/SL2_final_adj_5mpp_surf_crop.obj")
-    bbox = BBox(model)
+    bbox = RayTracingEngine.BBox(model)
     argonautLat = -88.35006
     argonautLon = 300.14565
     pos3 = Float32.([cosd(argonautLon)*cosd(argonautLat); sind(argonautLon)*cosd(argonautLat); sind(argonautLat)].*(1.7374e6+300.0))
