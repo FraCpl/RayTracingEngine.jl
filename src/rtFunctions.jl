@@ -62,8 +62,8 @@ end
 
     # Model box
     bbox = BBox(model.position)
-    X0 = (bbox.min + bbox.max)/2
-    R = maximum(bbox.max - X0)
+    X0 = [(bbox.minx + bbox.maxx)/2; (bbox.miny + bbox.maxy)/2; (bbox.minz + bbox.maxz)/2]
+    R = maximum([bbox.maxx; bbox.maxy; bbox.maxz] - X0)
     Nf = length(model)
 
     # Creates rays matrix
