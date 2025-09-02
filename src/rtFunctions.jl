@@ -48,7 +48,7 @@ function rayTracingAltimeter(model::GeometryBasics.Mesh, ray::Ray, bbox::BBox=BB
 end
 
 function rayTracingAltimeter(model::BVHModel{T}, ray::Ray{T}, anyHit::Bool=false) where T
-    traverse!(ray, model, anyHit)
+    intersect!(ray, model, anyHit)
     return
 end
 

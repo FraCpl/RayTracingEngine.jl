@@ -7,17 +7,19 @@ mutable struct Ray{T}
     tmp4::Vector{T}     # Allocations
     t::T                # Distance to hit
     idxFace::Int64      # ID face hit
+    idxSkip::Int64      # ID face to skip when checking for intersections
 end
 
 function Ray(origin::Vector{T}, dir::Vector{T}) where T
-    return Ray(origin, normalize(dir), similar(dir), similar(dir), similar(dir), similar(dir), T(Inf), 0)
+    return Ray(origin, normalize(dir), similar(dir), similar(dir), similar(dir), similar(dir), T(Inf), 0, -1)
 end
 
 Ray() = Ray(zeros(Float32, 3), zeros(Float32, 3))
 
 @inline function resetRay!(ray::Ray{T}) where T
     ray.t = T(Inf)
-    # ray.idxFace = zero(ray.idxFace)
+    ray.idxFace = 0
+    ray.idxSkip = -1
     return
 end
 
@@ -29,8 +31,12 @@ end
 end
 
 @inline function intersect!(ray::Ray{X}, tri::GeometryBasics.Triangle{3, X}, idx::Int64) where X
-    # @show typeof(tri)
     v1, v2, v3 = tri
+#     intersect!(ray, v1, v2, v3, idx)
+#     return
+# end
+
+# @inline function intersect!(ray::Ray{X}, v1, v2, v3, idx::Int64) where X
     E12 = ray.tmp1; E13 = ray.tmp2; P = ray.tmp3
     @inbounds for i in 1:3
         E12[i] = v2[i] - v1[i]
@@ -91,7 +97,7 @@ function BBox(vertices)
     return BBox(bmin, bmax)
 end
 
-@inline function intersect!(ray::Ray{T}, bbox::BBox{T}) where T
+@inline function intersect(ray::Ray{T}, bbox::BBox{T}) where T
     # X-axis
     t1 = (bbox.minx - ray.origin[1])/ray.dir[1]
     t2 = (bbox.maxx - ray.origin[1])/ray.dir[1]

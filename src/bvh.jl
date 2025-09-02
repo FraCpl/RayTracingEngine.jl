@@ -10,6 +10,7 @@ struct BVHModel{T}
     model::GeometryBasics.Mesh
     nodes::Vector{BVHNode{T}}
     tri_indices::Vector{Int}
+    stack::Vector{Int}
 end
 
 function buildBvh(model::GeometryBasics.Mesh; maxLeafSize::Int=4)
@@ -22,7 +23,7 @@ function buildBvh(model::GeometryBasics.Mesh; maxLeafSize::Int=4)
 
     nodes = BVHNode{eltype(model[1][1])}[]
     _build!(nodes, model, tri_indices, 1, n, maxLeafSize, bmin, bmax)
-    return BVHModel(model, nodes, tri_indices)
+    return BVHModel(model, nodes, tri_indices, Int[])
 end
 
 function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax)
@@ -77,27 +78,32 @@ end
 
 function intersect!(ray::Ray{T}, bvh::BVHModel{T}, anyHit=false) where T
     resetRay!(ray)
-    stack = [1]   # start at root
+    stack = bvh.stack
+    empty!(stack)
+    push!(stack, 1)     # start at root
+    # stack = [1]
+    tInf = T(Inf)
     while !isempty(stack)
         node_idx = pop!(stack)
         node = bvh.nodes[node_idx]
 
-        if !intersect!(ray, node.bbox)
-            continue
-        end
-
-        if node.left < 0   # leaf
-            @inbounds for i in node.start:(node.start + node.count - 1)
-                idx = bvh.tri_indices[i]
-                tri = bvh.model[idx]
-                intersect!(ray, tri, idx)
-                if anyHit && ray.t < T(Inf)
-                    break
+        if intersect(ray, node.bbox)
+            if node.left < 0   # leaf
+                @inbounds for i in node.start:(node.start + node.count - 1)
+                    idx = bvh.tri_indices[i]
+                    if idx != ray.idxSkip
+                        tri = bvh.model[idx]
+                        intersect!(ray, tri, idx)
+                        if anyHit && ray.t < tInf
+                            break
+                        end
+                    end
                 end
+            else               # internal
+                push!(stack, node.left)
+                push!(stack, node.right)
             end
-        else               # internal
-            push!(stack, node.left)
-            push!(stack, node.right)
         end
     end
+    return ray.t < tInf
 end
