@@ -107,16 +107,23 @@ end
     # Y-axis
     t1 = (bbox.miny - ray.origin[2])/ray.dir[2]
     t2 = (bbox.maxy - ray.origin[2])/ray.dir[2]
-    tmin = ifelse(t1 < t2, max(tmin, t1), max(tmin, t2))
-    tmax = ifelse(t1 < t2, min(tmax, t2), min(tmax, t1))
+    lo, hi = minmax(t1, t2)
+    tmin = max(tmin, lo)
+    tmax = min(tmax, hi)
+    # tmin = ifelse(t1 < t2, max(tmin, t1), max(tmin, t2))
+    # tmax = ifelse(t1 < t2, min(tmax, t2), min(tmax, t1))
 
     # Z-axis
     t1 = (bbox.minz - ray.origin[3])/ray.dir[3]
     t2 = (bbox.maxz - ray.origin[3])/ray.dir[3]
-    tmin = ifelse(t1 < t2, max(tmin, t1), max(tmin, t2))
-    tmax = ifelse(t1 < t2, min(tmax, t2), min(tmax, t1))
+    lo, hi = minmax(t1, t2)
+    tmin = max(tmin, lo)
+    tmax = min(tmax, hi)
+    return tmax ≥ max(tmin, 0)
+    # tmin = ifelse(t1 < t2, max(tmin, t1), max(tmin, t2))
+    # tmax = ifelse(t1 < t2, min(tmax, t2), min(tmax, t1))
 
-    return tmax ≥ max(tmin, zero(T))
+    # return tmax ≥ max(tmin, zero(T))
 end
 
 struct SphereModel{T}

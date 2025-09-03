@@ -2,6 +2,7 @@ module RayTracingEngine
 
 using LinearAlgebra
 using GeometryBasics
+using Quaternions
 
 const EPS_PARALLEL = 1e-8
 const ZERO_WITH_TOL = -1e-8
@@ -20,5 +21,8 @@ include("bvh.jl")
 
 export rayTracingDrag, rayTracingSrp, rayTracingSurface, rayTracingHypersonicAero, rayTracingAltimeter
 include("rtFunctions.jl")
+
+export RayTracingCamera, rayTracingImage
+include("rtImage.jl")
 
 end
