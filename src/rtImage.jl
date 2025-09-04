@@ -45,14 +45,13 @@ function rayTracingImage(
     e12 = cam.ray.tmp1
     e23 = cam.ray.tmp2
     N = cam.ray.tmp3
-    t1 = T(1)
     SHDW_SHIFT = T(1.0 + 1e-6)
 
     for i in 1:cam.width, j in 1:cam.height
         # Compute pixel line of sight direction in Sensor frame
         dir_S[1] = cam.fxinv*T(i) + cam.u0inv
         dir_S[2] = cam.fyinv*T(j) + cam.v0inv
-        dir_S[3] = t1
+        dir_S[3] = 1
         normalize!(dir_S)
 
         # Compute pixel line of sight direction in World frame
@@ -72,7 +71,7 @@ function rayTracingImage(
                 e23[k] = v3[k] - v2[k]
             end
             cross!(N, e12, e23)     # Caution, non-unitary norm here!
-            if flipNormal; N .*= -t1; end
+            if flipNormal; N .*= -1; end
             if dot3(N, dirSun_W) < 0; continue; end     # Check: surface normal and light direction shall lie in the same hemisphere
 			if dot3(N, cam.ray.dir) > 0; continue; end  # Check: surface normal and observer direction shall lie in the same hemisphere
 

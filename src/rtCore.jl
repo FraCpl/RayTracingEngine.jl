@@ -98,11 +98,11 @@ function BBox(vertices)
 end
 
 @inline function intersect(ray::Ray{T}, bbox::BBox{T}) where T
+
     # X-axis
     t1 = (bbox.minx - ray.origin[1])/ray.dir[1]
     t2 = (bbox.maxx - ray.origin[1])/ray.dir[1]
-    tmin = ifelse(t1 < t2, t1, t2)
-    tmax = ifelse(t1 < t2, t2, t1)
+    tmin, tmax = minmax(t1, t2)
 
     # Y-axis
     t1 = (bbox.miny - ray.origin[2])/ray.dir[2]
@@ -110,8 +110,6 @@ end
     lo, hi = minmax(t1, t2)
     tmin = max(tmin, lo)
     tmax = min(tmax, hi)
-    # tmin = ifelse(t1 < t2, max(tmin, t1), max(tmin, t2))
-    # tmax = ifelse(t1 < t2, min(tmax, t2), min(tmax, t1))
 
     # Z-axis
     t1 = (bbox.minz - ray.origin[3])/ray.dir[3]
@@ -119,11 +117,8 @@ end
     lo, hi = minmax(t1, t2)
     tmin = max(tmin, lo)
     tmax = min(tmax, hi)
-    return tmax ≥ max(tmin, 0)
-    # tmin = ifelse(t1 < t2, max(tmin, t1), max(tmin, t2))
-    # tmax = ifelse(t1 < t2, min(tmax, t2), min(tmax, t1))
 
-    # return tmax ≥ max(tmin, zero(T))
+    return tmax ≥ max(tmin, 0)
 end
 
 struct SphereModel{T}
@@ -140,11 +135,11 @@ end
         d += x*x
     end
     δ = c*c - d + sphere.R*sphere.R
-    if δ < 0.0
+    if δ < 0
         return
     end
     ρ = - c - √δ
-    if 0.0 < ρ < ray.t
+    if 0 < ρ < ray.t
         ray.t = ρ
     end
     return

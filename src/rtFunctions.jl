@@ -27,7 +27,7 @@ function rayTracingHypersonicAero(model::GeometryBasics.Mesh, dirVel::Vector{T},
     force .*= CpMax*Qdyn
     torque .*= CpMax*Qdyn
     torque .-= posRef × force
-    drag = dot3(force, -dvel).*(-dvel)
+    drag = dot3(force, dvel).*dvel
     lift = force - drag
     return drag, lift, torque
 end
@@ -67,17 +67,16 @@ end
     Nf = length(model)
 
     # Creates rays matrix
-    coords = 1.1*R*range(-1, 1, round(Int, √Nrays))
+    coords = T.(1.1*R*range(-1, 1, round(Int, √Nrays)))
     dirRay = -normalize(dirSun)
-    R_IS = genOrthogonalAxes(dirSun)
+    R_IS = T.(genOrthogonalAxes(dirSun))
     Ap = (coords[2] - coords[1])^2
 
     # Intersect model
     surf = 0.0; posCoP = zeros(T, 3)
     forceSrp = zeros(T, 3); torqueSrp = zeros(T, 3)
-    ray = Ray(zeros(T, 3), dirRay)
+    ray = Ray(zeros(T, 3), T.(dirRay))
     tmp1 = ray.tmp1; tmp2 = ray.tmp2; tmp3 = ray.tmp3; tmp4 = ray.tmp4
-
     for x in coords, y in coords
         # Update ray origin
         resetRay!(ray)
