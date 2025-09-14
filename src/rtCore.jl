@@ -1,6 +1,7 @@
 mutable struct Ray{T}
     origin::Vector{T}   # Ray origin position
     dir::Vector{T}      # Ray direction
+    invdir::Vector{T}   # 1/direction
     tmp1::Vector{T}     # Allocations
     tmp2::Vector{T}     # Allocations
     tmp3::Vector{T}     # Allocations
@@ -11,7 +12,7 @@ mutable struct Ray{T}
 end
 
 function Ray(origin::Vector{T}, dir::Vector{T}) where T
-    return Ray(origin, normalize(dir), similar(dir), similar(dir), similar(dir), similar(dir), T(Inf), 0, -1)
+    return Ray(origin, normalize(dir), similar(dir), similar(dir), similar(dir), similar(dir), similar(dir), T(Inf), 0, -1)
 end
 
 Ray() = Ray(zeros(Float32, 3), zeros(Float32, 3))
@@ -20,6 +21,13 @@ Ray() = Ray(zeros(Float32, 3), zeros(Float32, 3))
     ray.t = T(Inf)
     ray.idxFace = 0
     ray.idxSkip = -1
+    return
+end
+
+@inline function invdirRay!(ray::Ray{T}) where T
+    ray.invdir[1] = 1/ray.dir[1]
+    ray.invdir[2] = 1/ray.dir[2]
+    ray.invdir[3] = 1/ray.dir[3]
     return
 end
 
@@ -83,7 +91,9 @@ end
     return BBox(bmin[1], bmin[2], bmin[3], bmax[1], bmax[2], bmax[3])
 end
 
-@inline BBox(model::GeometryBasics.Mesh) = BBox(model.position)
+@inline function BBox(model::M) where {M<:GeometryBasics.Mesh}
+    return BBox(model.position)
+end
 
 function BBox(vertices)
     bmin = Vector(vertices[1])
@@ -100,25 +110,24 @@ end
 @inline function intersect(ray::Ray{T}, bbox::BBox{T}) where T
 
     # X-axis
-    t1 = (bbox.minx - ray.origin[1])/ray.dir[1]
-    t2 = (bbox.maxx - ray.origin[1])/ray.dir[1]
-    tmin, tmax = minmax(t1, t2)
+    t1 = (bbox.minx - ray.origin[1])*ray.invdir[1]
+    t2 = (bbox.maxx - ray.origin[1])*ray.invdir[1]
+    tmin = min(t1, t2)
+    tmax = max(t1, t2)
 
     # Y-axis
-    t1 = (bbox.miny - ray.origin[2])/ray.dir[2]
-    t2 = (bbox.maxy - ray.origin[2])/ray.dir[2]
-    lo, hi = minmax(t1, t2)
-    tmin = max(tmin, lo)
-    tmax = min(tmax, hi)
+    t1 = (bbox.miny - ray.origin[2])*ray.invdir[2]
+    t2 = (bbox.maxy - ray.origin[2])*ray.invdir[2]
+    tmin = max(tmin, min(t1, t2))
+    tmax = min(tmax, max(t1, t2))
 
     # Z-axis
-    t1 = (bbox.minz - ray.origin[3])/ray.dir[3]
-    t2 = (bbox.maxz - ray.origin[3])/ray.dir[3]
-    lo, hi = minmax(t1, t2)
-    tmin = max(tmin, lo)
-    tmax = min(tmax, hi)
+    t1 = (bbox.minz - ray.origin[3])*ray.invdir[3]
+    t2 = (bbox.maxz - ray.origin[3])*ray.invdir[3]
+    tmin = max(tmin, min(t1, t2))
+    tmax = min(tmax, max(t1, t2))
 
-    return tmax ≥ max(tmin, 0)
+    return tmax ≥ max(tmin, zero(T))
 end
 
 struct SphereModel{T}

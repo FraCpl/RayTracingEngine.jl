@@ -6,14 +6,14 @@ struct BVHNode{T}
     count::Int      # number of triangles (only valid if leaf)
 end
 
-struct BVHModel{T}
-    model::GeometryBasics.Mesh
+struct BVHModel{T, M<:GeometryBasics.Mesh}
+    model::M
     nodes::Vector{BVHNode{T}}
     tri_indices::Vector{Int}
     stack::Vector{Int}
 end
 
-function buildBvh(model::GeometryBasics.Mesh; maxLeafSize::Int=4)
+function buildBvh(model::M; maxLeafSize::Int=4) where {M<:GeometryBasics.Mesh}
     n = length(model)
 
     # Init
@@ -76,12 +76,12 @@ function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax
 end
 
 
-function intersect!(ray::Ray{T}, bvh::BVHModel{T}, anyHit=false) where {T}
+function intersect!(ray::Ray{T}, bvh::BVHModel{T, M}, anyHit=false) where {T, M<:GeometryBasics.Mesh}
     resetRay!(ray)
+    invdirRay!(ray)
     stack = bvh.stack
     empty!(stack)
     push!(stack, 1)     # start at root
-    # stack = [1]
     tInf = T(Inf)
     while !isempty(stack)
         node_idx = pop!(stack)

@@ -17,9 +17,9 @@ end
 function RayTracingCamera(width, height, Kcam::Matrix{T}) where T
     img = zeros(T, height, width)
     depth = zeros(T, height, width)
-    ray = Ray(zeros(Float32, 3), [0.0f0, 0.0f0, 1.0f0])
-    rayShadow = Ray(zeros(Float32, 3), [0.0f0, 0.0f0, 1.0f0])
-    dir_S = zeros(Float32, 3)
+    ray = Ray(zeros(T, 3), T.([0, 0, 1]))
+    rayShadow = Ray(zeros(T, 3), T.([0, 0, 1]))
+    dir_S = zeros(T, 3)
     fx = Kcam[1, 1]; fy = Kcam[2, 2]
     u0 = Kcam[1, 3]; v0 = Kcam[2, 3]
     return RayTracingCamera(width, height, img, depth, T(1/fx), T(1/fy), -u0/fx, -v0/fy, ray, rayShadow, dir_S)
@@ -27,7 +27,7 @@ end
 
 function rayTracingImage(
         cam::RayTracingCamera{T},       # Ray tracing camera model
-        bvh::BVHModel,                  # BVH of the scene
+        bvh::BVHModel{T},                  # BVH of the scene
         pos_W::Vector{T},               # Position of the sensor in World frame
         q_WS::Vector{T},                # Attitude of the sensor in World frame (zS: boresight)
         dirSun_W::Vector{T},            # Direction of the Sun in World frame (must be unit vector)
@@ -52,7 +52,7 @@ function rayTracingImage(
         dir_S[1] = cam.fxinv*T(i) + cam.u0inv
         dir_S[2] = cam.fyinv*T(j) + cam.v0inv
         dir_S[3] = 1
-        normalize!(dir_S)
+        normalize3!(dir_S)
 
         # Compute pixel line of sight direction in World frame
         q_transformVector!(cam.ray.dir, q_WS, dir_S)
@@ -83,7 +83,7 @@ function rayTracingImage(
             # Intersect with light
             if !RayTracingEngine.intersect!(cam.rayShadow, bvh, true)
                 # Normalize surface normal
-                normalize!(N)
+                normalize3!(N)
 
                 # Compute pixel value (Lambert BRDF)
                 cam.img[j, i] = dot3(N, dirSun_W)
@@ -101,4 +101,13 @@ end
 
 @inline function dot3(a::Vector{T}, b::Vector{T}) where T
     return a[1]*b[1] + a[2]*b[2] + a[3]*b[3]
+end
+
+@inline function normalize3!(v)
+    x, y, z = v
+    s = 1/sqrt(x*x + y*y + z*z)
+    v[1] = x*s
+    v[2] = y*s
+    v[3] = z*s
+    return
 end

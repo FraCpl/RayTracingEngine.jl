@@ -1,5 +1,5 @@
 # Qdyn = 1/2ρV^2
-function rayTracingDrag(model::GeometryBasics.Mesh, dirVel::Vector{Float64}, Qdyn=1.0, Cx=1.0; Nrays::Int=DEFAULT_NRAYS)
+function rayTracingDrag(model::M, dirVel::Vector{Float64}, Qdyn=1.0, Cx=1.0; Nrays::Int=DEFAULT_NRAYS) where {M<:GeometryBasics.Mesh}
     S, posCoP = rayTracingSrp(model, dirVel; Nrays=Nrays, Nrec=1, mode=:drag)
     forceDrag = -Qdyn*Cx*S*normalize(dirVel)
     torqueDrag = posCoP × forceDrag
@@ -21,7 +21,7 @@ end
 # [1] Anderson, Fundamentals of Aerodynamics
 # [2] Heybey, Newtonian Aerodynamics for General Body Shapes with Several Applications,
 #     https://ntrs.nasa.gov/api/citations/19660012440/downloads/19660012440.pdf
-function rayTracingHypersonicAero(model::GeometryBasics.Mesh, dirVel::Vector{T}, Qdyn=1.0, CpMax=1.84; Nrays::Int=DEFAULT_NRAYS, posRef=zeros(T, 3)) where T
+function rayTracingHypersonicAero(model::M, dirVel::Vector{T}, Qdyn=1.0, CpMax=1.84; Nrays::Int=DEFAULT_NRAYS, posRef=zeros(T, 3)) where {T, M<:GeometryBasics.Mesh}
     dvel = normalize(dirVel)
     force, torque = rayTracingSrp(model, dvel; Nrays=Nrays, Nrec=1, mode=:hyper)
     force .*= CpMax*Qdyn
@@ -32,12 +32,13 @@ function rayTracingHypersonicAero(model::GeometryBasics.Mesh, dirVel::Vector{T},
     return drag, lift, torque
 end
 
-function rayTracingSurface(model::GeometryBasics.Mesh, dirObs::Vector{T}; Nrays::Int=DEFAULT_NRAYS) where T
+function rayTracingSurface(model::M, dirObs::Vector{T}; Nrays::Int=DEFAULT_NRAYS) where {T, M<:GeometryBasics.Mesh}
     return first(rayTracingSrp(model, dirObs; Nrays=Nrays, Nrec=1, mode=:surf))
 end
 
-function rayTracingAltimeter(model::GeometryBasics.Mesh, ray::Ray, bbox::BBox=BBox(model))
+function rayTracingAltimeter(model::M, ray::Ray, bbox::BBox=BBox(model)) where {M<:GeometryBasics.Mesh}
     resetRay!(ray)                          # Initialize ray
+    invdirRay!(ray)
     if intersect(ray, bbox)                # Check if the ray intersects the object's bounding box
         Nf = length(model)
         @inbounds for k in 1:Nf
@@ -52,10 +53,10 @@ function rayTracingAltimeter(model::BVHModel{T}, ray::Ray{T}, anyHit::Bool=false
     return
 end
 
-@views function rayTracingSrp(model::GeometryBasics.Mesh, dirSun::Vector{T}, Psrp::T=T(1.0);
+@views function rayTracingSrp(model::M, dirSun::Vector{T}, Psrp::T=T(1.0);
         Nrays::Int=DEFAULT_NRAYS,
         Nrec::Int=3,
-        mode::Symbol=:srp) where T
+        mode::Symbol=:srp) where {T, M<:GeometryBasics.Mesh}
 
     anyHit = !(mode == :srp || mode == :hyper)
     α = 0.7; rd = 0.1; rs = 0.2
@@ -80,6 +81,7 @@ end
     for x in coords, y in coords
         # Update ray origin
         resetRay!(ray)
+        invdirRay!(ray)
         tmp1[1] = x; tmp1[2] = y; tmp1[3] = 3R
         mul!(tmp2, R_IS, tmp1)
         @inbounds for k in 1:3
@@ -115,6 +117,7 @@ end
                         ray.t = Inf
                         ray.dir .= newDir
                         ray.origin .= posHit .+ RAY_SHIFT.*newDir
+                        invdirRay!(ray)
                     end
                 elseif mode == :hyper
                     posHit = tmp1; N = tmp2; frc = tmp4

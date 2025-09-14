@@ -14,7 +14,7 @@ function mainImg()
     dirSun_W  = Float32.(normalize([54718120892.43014; 124338657748.59918; 62652598859.22545]))
 
     N0 = 1024
-    Nsup = 2
+    Nsup = 5
     N = Nsup*N0
     bvh = buildBvh(load(objFile))
     Kcam = Float32.(camMatrix(N, N, 46.6*π/180))
