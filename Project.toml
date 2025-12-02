@@ -1,12 +1,15 @@
 name = "RayTracingEngine"
 uuid = "f401591d-7b24-4fa8-90ca-ed90dffaa34d"
-authors = ["F. Capolupo"]
 version = "0.1.0"
+authors = ["F. Capolupo"]
 
 [deps]
 GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Quaternions = "d5f8330d-dd38-4550-8d64-11a08a0c5416"
+
+[sources]
+Quaternions = {rev = "master", url = "https://github.com/FraCpl/Quaternions.jl"}
 
 [compat]
 GeometryBasics = "0.5.10"

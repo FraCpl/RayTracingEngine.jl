@@ -10,8 +10,7 @@ struct Ray{T}
     invd::SVector{3,T}
 end
 
-Ray(o::SVector{3, T}, d::SVector{3, T}) where {T} =
-    Ray(o, normalize(d), 1 ./normalize(d))
+Ray(o::SVector{3,T}, d::SVector{3,T}) where {T} = Ray(o, normalize(d), 1 ./ normalize(d))
 
 mutable struct Hit{T}
     t::T
@@ -21,8 +20,8 @@ end
 Hit(::Type{T}) where {T} = Hit{T}(typemax(T), -1)
 
 struct BBox{T}
-    min::SVector{3, T}
-    max::SVector{3, T}
+    min::SVector{3,T}
+    max::SVector{3,T}
 end
 
 function BBox(vertices)
@@ -34,7 +33,12 @@ function BBox(vertices)
     return BBox(SVector{3}(mn[1], mn[2], mn[3]), SVector{3}(mx[1], mx[2], mx[3]))
 end
 
-@inline function intersect(ray::Ray{T}, tri::Tuple{SVector{3, T}, SVector{3, T}, SVector{3, T}}, idx::Int32, hit::Hit{T}) where {T}
+@inline function intersect(
+    ray::Ray{T},
+    tri::Tuple{SVector{3,T},SVector{3,T},SVector{3,T}},
+    idx::Int32,
+    hit::Hit{T},
+) where {T}
     v1, v2, v3 = tri
     e1 = v2 - v1
     e2 = v3 - v1
@@ -66,9 +70,9 @@ end
     return
 end
 
-@inline function intersect(ray::Ray{T}, box::BBox{T}, hit::Hit{T}) where T
-    t1 = (box.min .- ray.o).*ray.invd
-    t2 = (box.max .- ray.o).*ray.invd
+@inline function intersect(ray::Ray{T}, box::BBox{T}, hit::Hit{T}) where {T}
+    t1 = (box.min .- ray.o) .* ray.invd
+    t2 = (box.max .- ray.o) .* ray.invd
 
     tmin = maximum(min.(t1, t2))
     tmax = minimum(max.(t1, t2))
@@ -76,9 +80,15 @@ end
 end
 
 function mainAero()
-    anyIntersection  = true
+    anyIntersection = true
     model = load("C:/fc/data/3Dmodels/dragonLikeCapsule.obj")
-    mdl = [(SVector{3}(model.position[f[1]]), SVector{3}(model.position[f[2]]), SVector{3}(model.position[f[3]])) for f in model.faces]
+    mdl = [
+        (
+            SVector{3}(model.position[f[1]]),
+            SVector{3}(model.position[f[2]]),
+            SVector{3}(model.position[f[3]]),
+        ) for f in model.faces
+    ]
     bbox = BBox(model.position)
 
     dirSun = @SVector Float32[0.0, 0.0, 1.0]
@@ -101,7 +111,8 @@ function mainAero()
             # Intersect ray with entire model (closest intersection)
             @inbounds for k in idx
                 intersect(ray, mdl[k], k, hit)
-                if anyIntersection && hit.t < Inf;
+                if anyIntersection && hit.t < Inf
+                    ;
                     break
                 end
             end

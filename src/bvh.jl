@@ -6,14 +6,14 @@ struct BVHNode{T}
     count::Int      # number of triangles (only valid if leaf)
 end
 
-struct BVHModel{T, M<:GeometryBasics.Mesh}
+struct BVHModel{T,M<:GeometryBasics.Mesh}
     model::M
     nodes::Vector{BVHNode{T}}
     tri_indices::Vector{Int}
     stack::Vector{Int}
 end
 
-function buildBvh(model::M; maxLeafSize::Int=4) where {M<:GeometryBasics.Mesh}
+function buildBvh(model::M; maxLeafSize::Int = 4) where {M<:GeometryBasics.Mesh}
     n = length(model)
 
     # Init
@@ -30,13 +30,13 @@ function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax
     count = stop - start + 1
 
     # compute bbox for [start:stop]
-    @inbounds for i in 1:3
+    @inbounds for i = 1:3
         bmin[i] = model[tri_indices[start]][1][i]
         bmax[i] = bmin[i]
     end
-    for i in start:stop
+    for i = start:stop
         tri = model[tri_indices[i]]
-        for j in 1:3
+        for j = 1:3
             bmin[j] = min(bmin[j], tri[1][j], tri[2][j], tri[3][j])
             bmax[j] = max(bmax[j], tri[1][j], tri[2][j], tri[3][j])
         end
@@ -67,7 +67,7 @@ function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax
     push!(nodes, BVHNode(node_bbox, -1, -1, -1, 0))
 
     # build children
-    left  = _build!(nodes, model, tri_indices, start, mid, maxLeafSize, bmin, bmax)
+    left = _build!(nodes, model, tri_indices, start, mid, maxLeafSize, bmin, bmax)
     right = _build!(nodes, model, tri_indices, mid+1, stop, maxLeafSize, bmin, bmax)
 
     # overwrite parent with correct child indices
@@ -76,7 +76,11 @@ function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax
 end
 
 
-function intersect!(ray::Ray{T}, bvh::BVHModel{T, M}, anyHit=false) where {T, M<:GeometryBasics.Mesh}
+function intersect!(
+    ray::Ray{T},
+    bvh::BVHModel{T,M},
+    anyHit = false,
+) where {T,M<:GeometryBasics.Mesh}
     resetRay!(ray)
     invdirRay!(ray)
     stack = bvh.stack
@@ -89,7 +93,7 @@ function intersect!(ray::Ray{T}, bvh::BVHModel{T, M}, anyHit=false) where {T, M<
 
         if intersect(ray, node.bbox)
             if node.left < 0   # leaf
-                @inbounds for i in node.start:(node.start + node.count - 1)
+                @inbounds for i = node.start:(node.start+node.count-1)
                     idx = bvh.tri_indices[i]
                     if idx != ray.idxSkip
                         tri = bvh.model[idx]

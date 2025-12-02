@@ -14,25 +14,39 @@ mutable struct RayTracingCamera{T}
     dir_S::Vector{T}
 end
 
-function RayTracingCamera(width, height, Kcam::Matrix{T}) where T
+function RayTracingCamera(width, height, Kcam::Matrix{T}) where {T}
     img = zeros(T, height, width)
     depth = zeros(T, height, width)
     ray = Ray(zeros(T, 3), T.([0, 0, 1]))
     rayShadow = Ray(zeros(T, 3), T.([0, 0, 1]))
     dir_S = zeros(T, 3)
-    fx = Kcam[1, 1]; fy = Kcam[2, 2]
-    u0 = Kcam[1, 3]; v0 = Kcam[2, 3]
-    return RayTracingCamera(width, height, img, depth, T(1/fx), T(1/fy), -u0/fx, -v0/fy, ray, rayShadow, dir_S)
+    fx = Kcam[1, 1];
+    fy = Kcam[2, 2]
+    u0 = Kcam[1, 3];
+    v0 = Kcam[2, 3]
+    return RayTracingCamera(
+        width,
+        height,
+        img,
+        depth,
+        T(1/fx),
+        T(1/fy),
+        -u0/fx,
+        -v0/fy,
+        ray,
+        rayShadow,
+        dir_S,
+    )
 end
 
 function rayTracingImage(
-        cam::RayTracingCamera{T},       # Ray tracing camera model
-        bvh::BVHModel{T},                  # BVH of the scene
-        pos_W::Vector{T},               # Position of the sensor in World frame
-        q_WS::Vector{T},                # Attitude of the sensor in World frame (zS: boresight)
-        dirSun_W::Vector{T},            # Direction of the Sun in World frame (must be unit vector)
-        flipNormal::Bool=false,
-    ) where T
+    cam::RayTracingCamera{T},       # Ray tracing camera model
+    bvh::BVHModel{T},                  # BVH of the scene
+    pos_W::Vector{T},               # Position of the sensor in World frame
+    q_WS::Vector{T},                # Attitude of the sensor in World frame (zS: boresight)
+    dirSun_W::Vector{T},            # Direction of the Sun in World frame (must be unit vector)
+    flipNormal::Bool = false,
+) where {T}
 
     # Initialize outputs and rays
     # zeroT = zero(T)
@@ -47,7 +61,7 @@ function rayTracingImage(
     N = cam.ray.tmp3
     SHDW_SHIFT = T(1.0 + 1e-6)
 
-    for i in 1:cam.width, j in 1:cam.height
+    for i = 1:cam.width, j = 1:cam.height
         # Compute pixel line of sight direction in Sensor frame
         dir_S[1] = cam.fxinv*T(i) + cam.u0inv
         dir_S[2] = cam.fyinv*T(j) + cam.v0inv
@@ -66,14 +80,23 @@ function rayTracingImage(
             # Compute normal and check for preliminary illumination condition
             tri = bvh.model[cam.ray.idxFace]
             v1, v2, v3 = tri
-            @inbounds for k in 1:3
+            @inbounds for k = 1:3
                 e12[k] = v2[k] - v1[k]
                 e23[k] = v3[k] - v2[k]
             end
             cross!(N, e12, e23)     # Caution, non-unitary norm here!
-            if flipNormal; N .*= -1; end
-            if dot3(N, dirSun_W) < 0; continue; end     # Check: surface normal and light direction shall lie in the same hemisphere
-			if dot3(N, cam.ray.dir) > 0; continue; end  # Check: surface normal and observer direction shall lie in the same hemisphere
+            if flipNormal
+                ;
+                N .*= -1;
+            end
+            if dot3(N, dirSun_W) < 0
+                ;
+                continue;
+            end     # Check: surface normal and light direction shall lie in the same hemisphere
+            if dot3(N, cam.ray.dir) > 0
+                ;
+                continue;
+            end  # Check: surface normal and observer direction shall lie in the same hemisphere
 
             # Update shadow ray origin
             RayTracingEngine.rayHitPosition!(cam.rayShadow.origin, cam.ray)
@@ -99,7 +122,7 @@ function rayTracingImage(
     return cam.img
 end
 
-@inline function dot3(a::Vector{T}, b::Vector{T}) where T
+@inline function dot3(a::Vector{T}, b::Vector{T}) where {T}
     return a[1]*b[1] + a[2]*b[2] + a[3]*b[3]
 end
 
