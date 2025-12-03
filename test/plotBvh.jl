@@ -36,14 +36,12 @@ function plotBBox!(ax, b)
     ]
 
     linesegments!(ax, segs)
-    return
+    return nothing
 end
 
 function plotBvh()
-    model = load(
-        "C:/Users/francesco capolupo/OneDrive - ESA/Desktop/Work/Tools/rayTracer/examples/SL2_final_adj_5mpp_surf_crop.obj",
-    )
-    bvh = buildBvh(model; maxLeafSize = 500)
+    model = load("C:/Users/francesco capolupo/OneDrive - ESA/Desktop/Work/Tools/rayTracer/examples/SL2_final_adj_5mpp_surf_crop.obj")
+    bvh = buildBvh(model; maxLeafSize=500)
     @show length(bvh.nodes)
 
     fig = Figure();
@@ -54,7 +52,7 @@ function plotBvh()
             plotBBox!(ax, bvh.nodes[i].bbox)
         end
     end
-    mesh!(ax, model; color = (:grey, 0.4))
-    return
+    mesh!(ax, model; color=(:grey, 0.4))
+    return nothing
 end
 plotBvh()

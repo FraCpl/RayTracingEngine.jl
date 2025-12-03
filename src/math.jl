@@ -3,7 +3,7 @@
     a[1] = -b[3]*c[2] + b[2]*c[3]
     a[2] = +b[3]*c[1] - b[1]*c[3]
     a[3] = -b[2]*c[1] + b[1]*c[2]
-    return
+    return nothing
 end
 
 @inline function dot3(a, b)

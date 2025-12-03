@@ -33,12 +33,7 @@ function BBox(vertices)
     return BBox(SVector{3}(mn[1], mn[2], mn[3]), SVector{3}(mx[1], mx[2], mx[3]))
 end
 
-@inline function intersect(
-    ray::Ray{T},
-    tri::Tuple{SVector{3,T},SVector{3,T},SVector{3,T}},
-    idx::Int32,
-    hit::Hit{T},
-) where {T}
+@inline function intersect(ray::Ray{T}, tri::Tuple{SVector{3,T},SVector{3,T},SVector{3,T}}, idx::Int32, hit::Hit{T}) where {T}
     v1, v2, v3 = tri
     e1 = v2 - v1
     e2 = v3 - v1
@@ -67,7 +62,7 @@ end
         hit.t = t
         hit.idx = idx
     end
-    return
+    return nothing
 end
 
 @inline function intersect(ray::Ray{T}, box::BBox{T}, hit::Hit{T}) where {T}
@@ -82,13 +77,7 @@ end
 function mainAero()
     anyIntersection = true
     model = load("C:/fc/data/3Dmodels/dragonLikeCapsule.obj")
-    mdl = [
-        (
-            SVector{3}(model.position[f[1]]),
-            SVector{3}(model.position[f[2]]),
-            SVector{3}(model.position[f[3]]),
-        ) for f in model.faces
-    ]
+    mdl = [(SVector{3}(model.position[f[1]]), SVector{3}(model.position[f[2]]), SVector{3}(model.position[f[3]])) for f in model.faces]
     bbox = BBox(model.position)
 
     dirSun = @SVector Float32[0.0, 0.0, 1.0]

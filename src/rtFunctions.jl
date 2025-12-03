@@ -1,12 +1,6 @@
 # Qdyn = 1/2ρV^2
-function rayTracingDrag(
-    model::M,
-    dirVel::Vector{Float64},
-    Qdyn = 1.0,
-    Cx = 1.0;
-    Nrays::Int = DEFAULT_NRAYS,
-) where {M<:GeometryBasics.Mesh}
-    S, posCoP = rayTracingSrp(model, dirVel; Nrays = Nrays, Nrec = 1, mode = :drag)
+function rayTracingDrag(model::M, dirVel::Vector{Float64}, Qdyn=1.0, Cx=1.0; Nrays::Int=DEFAULT_NRAYS) where {M<:GeometryBasics.Mesh}
+    S, posCoP = rayTracingSrp(model, dirVel; Nrays=Nrays, Nrec=1, mode=:drag)
     forceDrag = -Qdyn*Cx*S*normalize(dirVel)
     torqueDrag = posCoP × forceDrag
     return forceDrag, torqueDrag
@@ -28,15 +22,10 @@ end
 # [2] Heybey, Newtonian Aerodynamics for General Body Shapes with Several Applications,
 #     https://ntrs.nasa.gov/api/citations/19660012440/downloads/19660012440.pdf
 function rayTracingHypersonicAero(
-    model::M,
-    dirVel::Vector{T},
-    Qdyn = 1.0,
-    CpMax = 1.84;
-    Nrays::Int = DEFAULT_NRAYS,
-    posRef = zeros(T, 3),
+    model::M, dirVel::Vector{T}, Qdyn=1.0, CpMax=1.84; Nrays::Int=DEFAULT_NRAYS, posRef=zeros(T, 3)
 ) where {T,M<:GeometryBasics.Mesh}
     dvel = normalize(dirVel)
-    force, torque = rayTracingSrp(model, dvel; Nrays = Nrays, Nrec = 1, mode = :hyper)
+    force, torque = rayTracingSrp(model, dvel; Nrays=Nrays, Nrec=1, mode=:hyper)
     force .*= CpMax*Qdyn
     torque .*= CpMax*Qdyn
     torque .-= posRef × force
@@ -45,48 +34,30 @@ function rayTracingHypersonicAero(
     return drag, lift, torque
 end
 
-function rayTracingSurface(
-    model::M,
-    dirObs::Vector{T};
-    Nrays::Int = DEFAULT_NRAYS,
-) where {T,M<:GeometryBasics.Mesh}
-    return first(rayTracingSrp(model, dirObs; Nrays = Nrays, Nrec = 1, mode = :surf))
+function rayTracingSurface(model::M, dirObs::Vector{T}; Nrays::Int=DEFAULT_NRAYS) where {T,M<:GeometryBasics.Mesh}
+    return first(rayTracingSrp(model, dirObs; Nrays=Nrays, Nrec=1, mode=:surf))
 end
 
-function rayTracingAltimeter(
-    model::M,
-    ray::Ray,
-    bbox::BBox = BBox(model),
-) where {M<:GeometryBasics.Mesh}
+function rayTracingAltimeter(model::M, ray::Ray, bbox::BBox=BBox(model)) where {M<:GeometryBasics.Mesh}
     resetRay!(ray)                          # Initialize ray
     invdirRay!(ray)
     if intersect(ray, bbox)                # Check if the ray intersects the object's bounding box
         Nf = length(model)
-        @inbounds for k = 1:Nf
+        @inbounds for k in 1:Nf
             intersect!(ray, model[k], k)    # Intersect ray with model and identify closest hit
         end
     end
-    return                                  # ray.t is the distance to model
+    return nothing                                  # ray.t is the distance to model
 end
 
-function rayTracingAltimeter(
-    model::BVHModel{T},
-    ray::Ray{T},
-    anyHit::Bool = false,
-) where {T}
+function rayTracingAltimeter(model::BVHModel{T}, ray::Ray{T}, anyHit::Bool=false) where {T}
     intersect!(ray, model, anyHit)
-    return
+    return nothing
 end
 
 @views function rayTracingSrp(
-    model::M,
-    dirSun::Vector{T},
-    Psrp::T = T(1.0);
-    Nrays::Int = DEFAULT_NRAYS,
-    Nrec::Int = 3,
-    mode::Symbol = :srp,
+    model::M, dirSun::Vector{T}, Psrp::T=T(1.0); Nrays::Int=DEFAULT_NRAYS, Nrec::Int=3, mode::Symbol=:srp
 ) where {T,M<:GeometryBasics.Mesh}
-
     anyHit = !(mode == :srp || mode == :hyper)
     α = 0.7;
     rd = 0.1;
@@ -122,7 +93,7 @@ end
         tmp1[2] = y;
         tmp1[3] = 3R
         mul!(tmp2, R_IS, tmp1)
-        @inbounds for k = 1:3
+        @inbounds for k in 1:3
             ray.origin[k] = tmp2[k] + X0[k]
         end
 
@@ -130,9 +101,9 @@ end
         if intersect(ray, bbox)
             psrp = Psrp
             # Initialize ray recursion
-            @inbounds for n = 1:Nrec
+            @inbounds for n in 1:Nrec
                 # Intersect ray with entire model (closest intersection)
-                @inbounds for k = 1:Nf
+                @inbounds for k in 1:Nf
                     intersect!(ray, model[k], k)
                     if anyHit && ray.t < Inf
                         break
@@ -233,7 +204,7 @@ function genOrthogonalAxes(zB_A)
     nu = norm(zB_A)
     if nu > 0.0
         zB_A = zB_A ./ nu
-        VB_A = [zB_A × [i==1; i==2; i==3] for i = 1:3]
+        VB_A = [zB_A × [i==1; i==2; i==3] for i in 1:3]
         vNorm = norm.(VB_A)
         iMax = findfirst(vNorm .≥ 0.2)
         vB_A = VB_A[iMax] ./ vNorm[iMax]

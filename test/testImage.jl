@@ -7,18 +7,13 @@ using JTools
 
 function mainImg()
     objFile = readdirext(
-        "C:/Users/francesco capolupo/OneDrive - ESA/Desktop/Work/Tools/ToolsJulia/Work/Argonaut/AbsNav/change3data/",
-        ".obj";
-        join = true,
+        "C:/Users/francesco capolupo/OneDrive - ESA/Desktop/Work/Tools/ToolsJulia/Work/Argonaut/AbsNav/change3data/", ".obj"; join=true
     )[3]
-    data = readdlm(
-        "C:/Users/francesco capolupo/OneDrive - ESA/Desktop/Work/Tools/ToolsJulia/Work/Argonaut/AbsNav/change3out/change3pose.txt",
-    )
+    data = readdlm("C:/Users/francesco capolupo/OneDrive - ESA/Desktop/Work/Tools/ToolsJulia/Work/Argonaut/AbsNav/change3out/change3pose.txt")
     idx0 = findall(Int.(data[:, 1]) .== 1)[1]
     posEst_W = Float32.(data[idx0, 2:4])
     qEst_WS = Float32.(data[idx0, 5:8])
-    dirSun_W =
-        Float32.(normalize([54718120892.43014; 124338657748.59918; 62652598859.22545]))
+    dirSun_W = Float32.(normalize([54718120892.43014; 124338657748.59918; 62652598859.22545]))
 
     N0 = 1024
     Nsup = 5
@@ -33,7 +28,7 @@ function mainImg()
     K = ImageProcessing.gaussianKernel1D(2.0f0, 5)
     imOut = imageFilter(imOut, K, K)
     imshow(imOut)
-    return
+    return nothing
 end
 
 mainImg()

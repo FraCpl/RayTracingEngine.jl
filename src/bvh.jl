@@ -13,7 +13,7 @@ struct BVHModel{T,M<:GeometryBasics.Mesh}
     stack::Vector{Int}
 end
 
-function buildBvh(model::M; maxLeafSize::Int = 4) where {M<:GeometryBasics.Mesh}
+function buildBvh(model::M; maxLeafSize::Int=4) where {M<:GeometryBasics.Mesh}
     n = length(model)
 
     # Init
@@ -30,13 +30,13 @@ function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax
     count = stop - start + 1
 
     # compute bbox for [start:stop]
-    @inbounds for i = 1:3
+    @inbounds for i in 1:3
         bmin[i] = model[tri_indices[start]][1][i]
         bmax[i] = bmin[i]
     end
-    for i = start:stop
+    for i in start:stop
         tri = model[tri_indices[i]]
-        for j = 1:3
+        for j in 1:3
             bmin[j] = min(bmin[j], tri[1][j], tri[2][j], tri[3][j])
             bmax[j] = max(bmax[j], tri[1][j], tri[2][j], tri[3][j])
         end
@@ -58,7 +58,7 @@ function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax
     # partition tri_indices[start:stop] by centroid along axis
     mid = (start + stop) >>> 1
     v = view(tri_indices, start:stop)
-    sort!(v; by = i -> begin
+    sort!(v; by=i -> begin
         v1, v2, v3 = model[i]
         (v1[axis] + v2[axis] + v3[axis]) # * onethird (multiplication by 1/3 not necessary for sorting)
     end)
@@ -75,12 +75,7 @@ function _build!(nodes, model, tri_indices, start, stop, maxLeafSize, bmin, bmax
     return node_idx
 end
 
-
-function intersect!(
-    ray::Ray{T},
-    bvh::BVHModel{T,M},
-    anyHit = false,
-) where {T,M<:GeometryBasics.Mesh}
+function intersect!(ray::Ray{T}, bvh::BVHModel{T,M}, anyHit=false) where {T,M<:GeometryBasics.Mesh}
     resetRay!(ray)
     invdirRay!(ray)
     stack = bvh.stack
@@ -93,7 +88,7 @@ function intersect!(
 
         if intersect(ray, node.bbox)
             if node.left < 0   # leaf
-                @inbounds for i = node.start:(node.start+node.count-1)
+                @inbounds for i in node.start:(node.start + node.count - 1)
                     idx = bvh.tri_indices[i]
                     if idx != ray.idxSkip
                         tri = bvh.model[idx]

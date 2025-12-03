@@ -19,8 +19,7 @@ include("rtCore.jl")
 export BVHModel, buildBvh
 include("bvh.jl")
 
-export rayTracingDrag,
-    rayTracingSrp, rayTracingSurface, rayTracingHypersonicAero, rayTracingAltimeter
+export rayTracingDrag, rayTracingSrp, rayTracingSurface, rayTracingHypersonicAero, rayTracingAltimeter
 include("rtFunctions.jl")
 
 export RayTracingCamera, rayTracingImage

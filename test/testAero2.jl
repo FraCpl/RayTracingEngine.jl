@@ -7,9 +7,9 @@ function mainAero2()
     model = load("C:/fc/data/3Dmodels/dragonLikeCapsule.obj")
     dirObs = Float32[0; 0; 1.0]
     Nrays = 100*100
-    @btime rayTracingSurface($model, $dirObs; Nrays = $Nrays)
+    @btime rayTracingSurface($model, $dirObs; Nrays=($Nrays))
 
-    rayTracingSurface(model, dirObs; Nrays = Nrays)
+    rayTracingSurface(model, dirObs; Nrays=Nrays)
 end
 
 mainAero2()

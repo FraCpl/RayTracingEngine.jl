@@ -24,19 +24,7 @@ function RayTracingCamera(width, height, Kcam::Matrix{T}) where {T}
     fy = Kcam[2, 2]
     u0 = Kcam[1, 3];
     v0 = Kcam[2, 3]
-    return RayTracingCamera(
-        width,
-        height,
-        img,
-        depth,
-        T(1/fx),
-        T(1/fy),
-        -u0/fx,
-        -v0/fy,
-        ray,
-        rayShadow,
-        dir_S,
-    )
+    return RayTracingCamera(width, height, img, depth, T(1/fx), T(1/fy), -u0/fx, -v0/fy, ray, rayShadow, dir_S)
 end
 
 function rayTracingImage(
@@ -45,7 +33,7 @@ function rayTracingImage(
     pos_W::Vector{T},               # Position of the sensor in World frame
     q_WS::Vector{T},                # Attitude of the sensor in World frame (zS: boresight)
     dirSun_W::Vector{T},            # Direction of the Sun in World frame (must be unit vector)
-    flipNormal::Bool = false,
+    flipNormal::Bool=false,
 ) where {T}
 
     # Initialize outputs and rays
@@ -61,7 +49,7 @@ function rayTracingImage(
     N = cam.ray.tmp3
     SHDW_SHIFT = T(1.0 + 1e-6)
 
-    for i = 1:cam.width, j = 1:cam.height
+    for i in 1:cam.width, j in 1:cam.height
         # Compute pixel line of sight direction in Sensor frame
         dir_S[1] = cam.fxinv*T(i) + cam.u0inv
         dir_S[2] = cam.fyinv*T(j) + cam.v0inv
@@ -80,7 +68,7 @@ function rayTracingImage(
             # Compute normal and check for preliminary illumination condition
             tri = bvh.model[cam.ray.idxFace]
             v1, v2, v3 = tri
-            @inbounds for k = 1:3
+            @inbounds for k in 1:3
                 e12[k] = v2[k] - v1[k]
                 e23[k] = v3[k] - v2[k]
             end
@@ -132,5 +120,5 @@ end
     v[1] = x*s
     v[2] = y*s
     v[3] = z*s
-    return
+    return nothing
 end
