@@ -2,7 +2,7 @@ module RayTracingEngine
 
 using LinearAlgebra
 using GeometryBasics
-using Quaternions
+using Quats
 
 const EPS_PARALLEL = 1e-8
 const ZERO_WITH_TOL = -1e-8
