@@ -18,7 +18,7 @@ end
 # (to be chosen by the user).
 #
 # References:
-# [1] Anderson, Fundamentals of Aerodynamics
+# [1] Anderson, Fundamentals of Aerodynamics (Chapter 14)
 # [2] Heybey, Newtonian Aerodynamics for General Body Shapes with Several Applications,
 #     https://ntrs.nasa.gov/api/citations/19660012440/downloads/19660012440.pdf
 function rayTracingHypersonicAero(
@@ -32,6 +32,20 @@ function rayTracingHypersonicAero(
     drag = dot3(force, dvel) .* dvel
     lift = force - drag
     return drag, lift, torque
+end
+
+# [1] Anderson, Fundamentals of Aerodynamics
+# [2] Maughmer, Long, Prediction of Forces and Moments for Hypersonic Flight Vehicle Control
+#     Effectors, https://ntrs.nasa.gov/api/citations/19920001852/downloads/19920001852.pdf
+function computeCpMax(
+    M::Float64,             # Mach number
+    γ::Float64=1.4,         # Heat capacity ratio, https://en.wikipedia.org/wiki/Heat_capacity_ratio
+)
+    A = (γ + 1)^2 * M^2 / (4 * γ * M^2 - 2 * (γ - 1))
+    B = (1 - γ + 2 * γ * M^2) / (γ + 1)
+    p02_p1 = A^(γ / (γ - 1)) * B            # Eq. (8.80)
+    CpMax = 2 / (γ * M^2) * (p02_p1 - 1)    # Eq (11.22)
+    return CpMax
 end
 
 function rayTracingSurface(model::M, dirObs::Vector{T}; Nrays::Int=DEFAULT_NRAYS) where {T,M<:GeometryBasics.Mesh}
